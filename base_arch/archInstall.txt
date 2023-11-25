@@ -1,0 +1,95 @@
+#########ARCH INSTALL GUIDE ###############
+STEP 1: Create vm environment
+    similar as above oses
+    choose Enable EFI option in system
+
+**DO THIS STEP WITHOUT PROXY SERVER
+STEP 2: Update pacman and install arch keyring
+    commands: pacman -Sy                                        # to sync pacman
+              pacman -S archlinux-keyring                       # to install keyring
+
+STEP 3: Use proxy if you like
+    commands:   export http_proxy=http://10.32.0.1:8080/
+                export https_proxy=$http_proxy
+                export ftp_proxy=$http_proxy
+
+STEP 4: Set time date UTC
+    command:    timedatectl set-ntp true
+                timedatectl status                              # to check status
+
+STEP 5: Set up Partition and mount root
+    ## CONSIDERING 20GB VM STORAGE
+    commands:   fdisk -l                                                            # to check disks
+                fdisk /dev/sda                                                      # suppose sda is the storage
+                    g                                                               # to create gpt partition
+                    n                                                               # create new partition for efi
+                    #choose sector name and begin sector as default
+                    +100M                                                           # last sector
+                    t                                                               # change file type
+                    #select partition 1
+                    1                                                               # select efi filesystem
+                    n                                                               # create new partition for root
+                    # select partition 2 and begin sector and end sector as default
+                    w                                                               # write partitions
+                mkfs.fat -F32 /dev/sda1                                             # to format efi partition as fat32
+                mkfs.ext4 /dev/sda2                                                 # to format root partition as ext4
+
+                mount /dev/sda2 /mnt                                                # mount root in /mnt directory
+
+STEP 6: install base system
+    command:    pacstrap /mnt base linux linux-firmware                             # to install base system, linux and linux firmware
+
+STEP 7: generate fstab
+    command:    genfstab -U /mnt >> /mnt/etc/fstab
+
+STEP 8: change to root in /mnt
+    commnad:    arch-chroot /mnt
+
+STEP 9: select timezone
+    command:    ln -sf /usr/share/zoneinfo/Asia/kolkata /etc/localtime
+
+STEP 10: sync clock
+    command:    hwclock --systohc
+
+STEP 11: create locale
+    commands:   pacman -S nano                                                      # install a text editor
+                nano /etc/locale.gen
+                # uncomment en.US utf8 utf8
+                locale-gen                                                          # to generate the locale
+
+STEP 12: Network configuration
+    commands:   nano /etc/hostname
+                # enter hostname ex:- tuluarch
+                nano /etc/hosts
+                # append three lines
+                # 127.0.0.1     localhost
+                #::1            localhost
+                #127.0.1.1      tuluarch.localdomain    tuluarch
+
+STEP 13: create root password add user
+    commands:   passwd                                                              # enter root password
+                # enter password twice
+                useradd -m tulu                                                     # to add new user -m to create a folder in home of user name
+                passwd tulu                                                         # enter user tulu password
+                usermod -aG wheel,audio,video,optical,storage tulu         # to add username in these groups wheel is added to get sudo privilage in user tulu
+                pacman -S sudo                                                      # install sudo
+                EDITOR=nano visudo                                                  # to edit visudo with nano
+                # uncomment %wheel ALL=(ALL) ALL ; to give wheel sudo privilage
+
+STEP 14: setup grub
+    command:    pacman -S grub efibootmgr dosfstools os-prober mtools
+                mkdir /boot/EFI
+                mount /dev/sda1 /boot/EFI
+                grub-install --target=x86_64-efi  --bootloader-id=grub_uefi --recheck
+                grub-mkconfig -o /boot/grub/grub.cfg
+
+STEP 15: Additional packages
+    commands:   pacman -S networkmanager vim git
+                systemctl enable NetworkManager                                     # to enable networkmanager at startup
+
+SREP 16: unmount and restart
+    commands:   exit                                                                # exit from chroot environ
+                umount -a                                                           # unmount all mounts
+                shutdown now
+                # remove the iso in vm and start
+
