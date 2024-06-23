@@ -18,6 +18,9 @@ mkfs.fat -F32 $efi_drive
 mkfs.ext4 $root_drive
 #mount root partition in /mnt
 mount $root_drive /mnt
+#mount boot partition in /mnt/boot/efi
+mkdir -p /mnt/boot/efi
+mount $efi_drive /mnt/boot/efi
 
 unset drive
 unset efi_size
